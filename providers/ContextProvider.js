@@ -8,7 +8,7 @@ class ContextProvider extends ServiceProvider {
       const ContextManager = require('../src/Manager');
       const { createHook, executionAsyncId } = require('async_hooks');
 
-      return new ContextManager(Store, { createHook, executionAsyncId });
+      return new ContextManager({ createHook, executionAsyncId });
     });
   }
 

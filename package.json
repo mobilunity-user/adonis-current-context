@@ -1,5 +1,5 @@
 {
-  "name": "adonis-context",
+  "name": "adonis-current-context",
   "version": "0.0.1",
   "description": "Context provider for the Adonis framework based on async_hooks",
   "main": "index.js",
