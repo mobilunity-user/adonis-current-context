@@ -5,32 +5,41 @@ const { ServiceProvider } = require('@adonisjs/fold')
 class ContextProvider extends ServiceProvider {
   _registerManager () {
     this.app.singleton('Context/Manager', () => {
-      const Manager = require('../src/Manager')
-      const Store = require('../src/Store')
-      const asyncHooks = require('async_hooks')
-      return new Manager(Store, asyncHooks)
-    })
+      const ContextManager = require('../src/Manager');
+      const { createHook, executionAsyncId } = require('async_hooks');
+
+      return new ContextManager(Store, { createHook, executionAsyncId });
+    });
   }
 
-  _registerStore () {
-    this.app.bind('Context/Store', () => {
-      const manager = this.app.use('Context/Manager')
-      return manager.current
-    })
-    this.app.alias('Context/Store', 'Context')
+  _registerService () {
+    const { app } = this;
+    const serviceNs = 'Context/Service';
+
+    app.singleton(serviceNs, () => {
+      const ContextManager = app.use('Context/Manager');
+      const ContextService = require('../src/Service');
+
+      return new ContextService(ContextManager);
+    });
+
+    app.alias(serviceNs, 'CurrentContext');
   }
 
   _registerMiddleware () {
-    this.app.singleton('Context/Middleware', () => {
-      const Middleware = require('../src/Middleware')
-      const manager = this.app.use('Context/Manager')
-      return new Middleware(manager)
-    })
+    const { app } = this;
+
+    app.singleton('Context/Middleware', () => {
+      const Middleware = require('../src/Middleware');
+      const ContextManager = app.use('Context/Manager');
+
+      return new Middleware(ContextManager);
+    });
   }
 
   register () {
     this._registerManager()
-    this._registerStore()
+    this._registerService()
     this._registerMiddleware()
   }
 

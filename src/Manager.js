@@ -1,80 +1,111 @@
-'use strict'
+const { assign } = require('lodash');
+
+'use strict';
 
 /**
  * Manages async hooks for tracking context
  */
-class Manager {
+class ContextManager {
   /**
-   * @param {function(new:Store)} Store
-   * @param {creatHook: function} asyncHooks
-   * @param {function(): string} generateId
+   * @param {creatHook: function, executionAsyncId: function} asyncApi
    */
-  constructor (Store, { createHook }, generateId) {
-    this.contexts = new Map()
-    this.Store = Store
-    this.default = new Store()
-    this.current = this.default
-    this.hook = createHook(this._hooks()).enable()
+  constructor({ createHook, executionAsyncId }) {
+    const { _hooks } = this;
+    const _default = {};
+
+    assign(this, {
+      eid: executionAsyncId,
+      contexts: new Map(),
+      _current: _default,
+      _default
+    });
+
+    createHook(_hooks).enable();
   }
 
   /**
    * Run an async function inside a new context.
-   *
-   * @param {function(): Promise} next
+   * @param {Adonis/Src/Context | Adonis/Addons/WsContext} context
+   * @param {function(): Promise} operations
    * @return {Promise}
    */
-  run (next) {
-    return new Promise((resolve, reject) => {
+  async run(context, operations) {
+    return new Promise((resolve, reject) =>
       process.nextTick(() => {
-        const outer = this.current
-        this.current = new this.Store()
-        next().then(resolve, reject)
-        this.current = outer
-      })
-    })
+        const { _current, contexts } = this;
+        const eid = this.eid();
+
+        contexts.set(eid, this._current = context);
+        operations().then(resolve).catch(reject);
+        this._current = _current;
+      }
+    ));
   }
 
   /**
-   * Enable async hooks
-   *
-   * Hooks are enabled by default.
+   * @property {object} current
    */
-  enable () {
-    this.hook.enable()
+  get current() {
+    const { _current, _default } = this;
+
+    return _current || _default;
   }
 
   /**
-   * Disable async hooks
-   *
-   * Context will not be maintained in future event loop
-   * iterations.
+   * @property {object} default
    */
-  disable () {
-    this.hook.disable()
+  get default() {
+    return this._default;
+  }
+
+  set default(value) {
+    const { _current, _default } = this;
+
+    if (value !== _default) {
+      return;
+    }
+
+    if (_current === _default) {
+      this._current = value;
+    }
+
+    this._default = value;
   }
 
   /**
    * @private
    */
-  _hooks () {
+  get _hooks() {
     return {
-      init: (id) => {
-        this.contexts.set(id, this.current)
+      init: id => {
+        const { contexts } = this;
+        const eid = this.eid();
+
+        if ((id !== eid) && contexts.has(eid)) {
+          contexts.set(id, contexts.get(eid));
+        }
       },
 
-      before: (id) => {
-        this.current = this.contexts.get(id)
+      before: id => {
+        const { contexts } = this;
+
+        if (!contexts.has(id)) {
+          this._current = this.default;
+          return;
+        }
+
+        this._current = contexts.get(id);
       },
 
       after: () => {
-        this.current = this.default
+        this._current = this.default;
       },
 
-      destroy: (id) => {
-        this.contexts.delete(id)
+      destroy: id => {
+        this.contexts.delete(id);
       }
-    }
+    };
   }
 }
 
-module.exports = Manager
+module.exports = ContextManager;

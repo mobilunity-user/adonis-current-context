@@ -1,24 +1,17 @@
 {
   "name": "adonis-context",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Context provider for the Adonis framework based on async_hooks",
   "main": "index.js",
-  "directories": {
-    "test": "test"
-  },
   "dependencies": {
-    "node-exceptions": "^2.0.2"
-  },
-  "devDependencies": {
-    "@adonisjs/fold": "^4.0.5",
-    "japa": "^1.0.5",
-    "japa-cli": "^1.0.1",
-    "nyc": "^11.4.1",
-    "standard": "^10.0.3"
+    "lodash": "^4.17.11",
+    "node-exceptions": "^4.0.1",
+    "@adonisjs/fold": "^4.0.9",
+    "@adonisjs/generic-exceptions": "^3.0.1"
   },
   "scripts": {
-    "test": "standard && nyc japa"
+    "test": "echo 'No tests configured yet'"
   },
-  "author": "Brent Burgoyne",
+  "author": "Mobilunity",
   "license": "MIT"
 }

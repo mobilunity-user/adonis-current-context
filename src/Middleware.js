@@ -1,25 +1,25 @@
-'use strict'
+'use strict';
 
 /**
  * Middleware executes the rest of the middleware stack in an async context
  */
-class Middleware {
+class ContextMiddleware {
   /**
    * @param {Manager} manager
    */
   constructor (manager) {
-    this.manager = manager
+    this.manager = manager;
   }
 
   /**
    * Handle request
    *
-   * @param {*}
+   * @param {Adonis/Src/Context} context
    * @param {function(): Promise} next
    */
-  async handle (_, next) {
-    await this.manager.run(next)
+  async handle (context, next) {
+    await this.manager.run(context, next);
   }
 }
 
-module.exports = Middleware
+module.exports = ContextMiddleware;
