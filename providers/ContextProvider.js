@@ -1,6 +1,7 @@
 'use strict'
 
-const { ServiceProvider } = require('@adonisjs/fold')
+const { assign, isObject, isFunction, isUndefined } = require('lodash');
+const { ServiceProvider } = require('@adonisjs/fold');
 
 class ContextProvider extends ServiceProvider {
   _registerManager () {
@@ -28,6 +29,23 @@ class ContextProvider extends ServiceProvider {
 
   _registerMiddleware () {
     const { app } = this;
+    const Server = app.use('Server');
+
+    assign(Server.constructor.prototype, {
+      _safelySetResponse(response, content, method = 'send') {
+        let _content = content;
+
+        if (this._madeSoftResponse(response) || isUndefined(_content)) {
+          return;
+        }
+
+        if (isObject(_content) && isFunction(_content.toJSON)) {
+          _content = _content.toJSON();
+        }
+
+        response.send(_content);
+      }
+    });
 
     app.singleton('Context/Middleware', () => {
       const Middleware = require('../src/Middleware');
@@ -38,14 +56,16 @@ class ContextProvider extends ServiceProvider {
   }
 
   register () {
-    this._registerManager()
-    this._registerService()
-    this._registerMiddleware()
+    this._registerManager();
+    this._registerService();
+    this._registerMiddleware();
   }
 
   boot () {
+    const Server = this.app.use('Server');
+
     // this is before global middlewares registered in start/kernel.js
-    this.app.use('Server').registerGlobal(['Context/Middleware'])
+    Server.registerGlobal(['Context/Middleware']);
   }
 }
 
