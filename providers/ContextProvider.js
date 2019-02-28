@@ -1,6 +1,6 @@
 'use strict'
 
-const { assign, isObject, isFunction, isUndefined } = require('lodash');
+const { assign, isArray, isObject, isFunction, isUndefined } = require('lodash');
 const { ServiceProvider } = require('@adonisjs/fold');
 
 class ContextProvider extends ServiceProvider {
@@ -32,18 +32,26 @@ class ContextProvider extends ServiceProvider {
     const Server = app.use('Server');
 
     assign(Server.constructor.prototype, {
-      _safelySetResponse(response, content, method = 'send') {
-        let _content = content;
+      _jsonifyResponse(content) {
+        if (isObject(content) && isFunction(content.toJSON)) {
+          content = content.toJSON();
+        }
 
-        if (this._madeSoftResponse(response) || isUndefined(_content)) {
+        if (isArray(content)) {
+          content = map(content,
+            item => this._jsonifyResponse(item)
+          );
+        }
+
+        return content;
+      },
+
+      _safelySetResponse(response, content, method = 'send') {
+        if (this._madeSoftResponse(response) || isUndefined(content)) {
           return;
         }
 
-        if (isObject(_content) && isFunction(_content.toJSON)) {
-          _content = _content.toJSON();
-        }
-
-        response.send(_content);
+        response.send(this._jsonifyResponse(content));
       }
     });
 
